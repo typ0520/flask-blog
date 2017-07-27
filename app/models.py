@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 __author__ = 'typ0520'
 
+from app import db
+
 class Role(db.Model):
 	__tablename__ = 'roles'
 
