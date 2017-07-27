@@ -8,6 +8,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'Vgfg5.4$%fd*gf?=='
+    SQLALCHEMY_TRACK_MODIFICATIONS = True
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     FLASKY_ADMIN = os.environ.get('FLASKY_ADMIN')
 

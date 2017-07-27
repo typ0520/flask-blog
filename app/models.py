@@ -2,6 +2,10 @@
 # -*- coding: utf-8 -*-
 __author__ = 'typ0520'
 
+#python manage.py db init
+#python manage.py db migrate -m "initial migration"
+#python manage.py db upgrade
+
 from app import db
 
 class Role(db.Model):
