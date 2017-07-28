@@ -4,6 +4,6 @@ __author__ = 'typ0520'
 
 from flask import Blueprint
 
-main = Blueprint('main', __name__)
+auth = Blueprint('auth', __name__)
 
-from . import views, errors
+from . import views, forms
