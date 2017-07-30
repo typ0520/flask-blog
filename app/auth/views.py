@@ -100,29 +100,29 @@ def modify_pwd():
     return render_template('auth/modify_pwd.html', form=form)
 
 
-@auth.route('/reset_pwd', methods=['GET','POST'])
-def reset_pwd():
-    form = ResetPwdForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data)
-        if user is None:
-            flash('The mail does not exist.')
-            return redirect(url_for('auth.reset_pwd'))
-        s = Serializer(current_app.config['SECRET_KEY'], 3600)
-        token = s.dumps({'reset_pwd_token': user.id})
-        send_email(form.mail.data, 'Reset password', 'auth/email/reset_pwd', user=user, token=token)
-        flash('A verification email has been sent to you by email.')
-        return redirect(url_for('auth.reset_pwd'))
-    return render_template('auth/reset_pwd.html', form=form)
-
-
-@auth.route('/reset_pwd_confirm/<token>')
-@login_required
-def confirm(token):
-    if current_user.confirmed:
-        return redirect(url_for('main.index'))
-    if current_user.confirm(token):
-        flash('You have confirmed your account. Thanks!')
-    else:
-        flash('The confirmation link is invalid or has expired.')
-    return redirect(url_for('main.index'))
+# @auth.route('/reset_pwd', methods=['GET','POST'])
+# def reset_pwd():
+#     form = ResetPwdForm()
+#     if form.validate_on_submit():
+#         user = User.query.filter_by(email=form.email.data)
+#         if user is None:
+#             flash('The mail does not exist.')
+#             return redirect(url_for('auth.reset_pwd'))
+#         s = Serializer(current_app.config['SECRET_KEY'], 3600)
+#         token = s.dumps({'reset_pwd_token': user.id})
+#         send_email(form.mail.data, 'Reset password', 'auth/email/reset_pwd', user=user, token=token)
+#         flash('A verification email has been sent to you by email.')
+#         return redirect(url_for('auth.reset_pwd'))
+#     return render_template('auth/reset_pwd.html', form=form)
+#
+#
+# @auth.route('/reset_pwd_confirm/<token>')
+# @login_required
+# def confirm(token):
+#     if current_user.confirmed:
+#         return redirect(url_for('main.index'))
+#     if current_user.confirm(token):
+#         flash('You have confirmed your account. Thanks!')
+#     else:
+#         flash('The confirmation link is invalid or has expired.')
+#     return redirect(url_for('main.index'))
