@@ -2,14 +2,16 @@
 # -*- coding: utf-8 -*-
 __author__ = 'typ0520'
 
+from flask import current_app
 from flask import render_template, redirect, request, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
 
 from . import auth
 from .. import db
 from ..models import User
-from .forms import LoginForm, RegisterForm, ModifyPwdForm
+from .forms import LoginForm, RegisterForm, ModifyPwdForm, ResetPwdForm
 from ..email import send_email
+from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 
 
 @auth.before_app_request
@@ -82,6 +84,7 @@ def unconfirmed():
         return redirect(url_for('main.index'))
     return render_template('auth/unconfirmed.html')
 
+
 @auth.route('/modify_pwd', methods=['GET','POST'])
 @login_required
 def modify_pwd():
@@ -95,3 +98,31 @@ def modify_pwd():
         flash('Reset password success.')
         return redirect(url_for('main.index'))
     return render_template('auth/modify_pwd.html', form=form)
+
+
+@auth.route('/reset_pwd', methods=['GET','POST'])
+def reset_pwd():
+    form = ResetPwdForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data)
+        if user is None:
+            flash('The mail does not exist.')
+            return redirect(url_for('auth.reset_pwd'))
+        s = Serializer(current_app.config['SECRET_KEY'], 3600)
+        token = s.dumps({'reset_pwd_token': user.id})
+        send_email(form.mail.data, 'Reset password', 'auth/email/reset_pwd', user=user, token=token)
+        flash('A verification email has been sent to you by email.')
+        return redirect(url_for('auth.reset_pwd'))
+    return render_template('auth/reset_pwd.html', form=form)
+
+
+@auth.route('/reset_pwd_confirm/<token>')
+@login_required
+def confirm(token):
+    if current_user.confirmed:
+        return redirect(url_for('main.index'))
+    if current_user.confirm(token):
+        flash('You have confirmed your account. Thanks!')
+    else:
+        flash('The confirmation link is invalid or has expired.')
+    return redirect(url_for('main.index'))
