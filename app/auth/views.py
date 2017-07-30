@@ -8,7 +8,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from . import auth
 from .. import db
 from ..models import User
-from .forms import LoginForm, RegisterForm, ResetPwdForm
+from .forms import LoginForm, RegisterForm, ModifyPwdForm
 from ..email import send_email
 
 
@@ -82,16 +82,16 @@ def unconfirmed():
         return redirect(url_for('main.index'))
     return render_template('auth/unconfirmed.html')
 
-@auth.route('/reset_pwd', methods=['GET','POST'])
+@auth.route('/modify_pwd', methods=['GET','POST'])
 @login_required
-def reset_pwd():
-    form = ResetPwdForm()
+def modify_pwd():
+    form = ModifyPwdForm()
     if form.validate_on_submit():
         if not current_user.verify_password(form.password.data):
             flash('Invalid password.')
-            return redirect(url_for('auth.reset_pwd'))
+            return redirect(url_for('auth.modify_pwd'))
         current_user.password_hash = User(password=form.new_password.data).password_hash
         db.session.add(current_user)
         flash('Reset password success.')
         return redirect(url_for('main.index'))
-    return render_template('auth/reset_pwd.html', form=form)
+    return render_template('auth/modify_pwd.html', form=form)
