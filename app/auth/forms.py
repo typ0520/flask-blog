@@ -37,8 +37,16 @@ class ModifyPwdForm(FlaskForm):
     new_password = PasswordField('New-password',
                                  validators=[Required(), EqualTo('new_password2', message='Passwords must match.')])
     new_password2 = PasswordField('Confirm Password', validators=[Required()])
-    submit = SubmitField('Reset')
+    submit = SubmitField('Modify')
 
 
 class ResetPwdForm(FlaskForm):
     email = StringField('Email', validators=[Required(), Length(1, 64), Email()])
+    submit = SubmitField('Send email')
+
+
+class ResetPwdEditForm(FlaskForm):
+    new_password = PasswordField('New-password',
+                                 validators=[Required(), EqualTo('new_password2', message='Passwords must match.')])
+    new_password2 = PasswordField('Confirm Password', validators=[Required()])
+    submit = SubmitField('Reset')

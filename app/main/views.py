@@ -4,12 +4,13 @@ __author__ = 'typ0520'
 
 from datetime import datetime
 from flask import render_template, session, redirect, url_for
-
+from flask_login import login_required
 from . import main
 from .. import db
 from ..models import User
 
 
 @main.route('/', methods=['GET', 'POST'])
+@login_required
 def index():
     return render_template('index.html')

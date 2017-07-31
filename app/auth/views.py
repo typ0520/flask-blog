@@ -9,7 +9,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from . import auth
 from .. import db
 from ..models import User
-from .forms import LoginForm, RegisterForm, ModifyPwdForm, ResetPwdForm
+from .forms import LoginForm, RegisterForm, ModifyPwdForm, ResetPwdForm, ResetPwdEditForm
 from ..email import send_email
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 
@@ -100,29 +100,45 @@ def modify_pwd():
     return render_template('auth/modify_pwd.html', form=form)
 
 
-# @auth.route('/reset_pwd', methods=['GET','POST'])
-# def reset_pwd():
-#     form = ResetPwdForm()
-#     if form.validate_on_submit():
-#         user = User.query.filter_by(email=form.email.data)
-#         if user is None:
-#             flash('The mail does not exist.')
-#             return redirect(url_for('auth.reset_pwd'))
-#         s = Serializer(current_app.config['SECRET_KEY'], 3600)
-#         token = s.dumps({'reset_pwd_token': user.id})
-#         send_email(form.mail.data, 'Reset password', 'auth/email/reset_pwd', user=user, token=token)
-#         flash('A verification email has been sent to you by email.')
-#         return redirect(url_for('auth.reset_pwd'))
-#     return render_template('auth/reset_pwd.html', form=form)
-#
-#
-# @auth.route('/reset_pwd_confirm/<token>')
-# @login_required
-# def confirm(token):
-#     if current_user.confirmed:
-#         return redirect(url_for('main.index'))
-#     if current_user.confirm(token):
-#         flash('You have confirmed your account. Thanks!')
-#     else:
-#         flash('The confirmation link is invalid or has expired.')
-#     return redirect(url_for('main.index'))
+@auth.route('/reset_pwd', methods=['GET','POST'])
+def reset_pwd():
+    form = ResetPwdForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        if user is None:
+            flash('The mail does not exist.')
+            return redirect(url_for('auth.reset_pwd'))
+        s = Serializer(current_app.config['SECRET_KEY'], 3600)
+        token = s.dumps({'user_id': user.id,'email': user.email})
+        send_email(form.email.data, 'Reset password', 'auth/email/reset_pwd', user=user, token=token)
+        flash('A verification email has been sent to you by email.')
+        return redirect(url_for('auth.login'))
+    return render_template('auth/reset_pwd.html', form=form)
+
+
+@auth.route('/reset_pwd_edit/<token>', methods=['GET','POST'])
+def reset_pwd_edit(token):
+    form = ResetPwdEditForm()
+    s = Serializer(current_app.config['SECRET_KEY'])
+    try:
+        data = s.loads(token)
+    except:
+        pass
+
+    if data is None:
+        flash('Invalid token.')
+        return redirect(url_for('auth.login'))
+
+    if form.validate_on_submit():
+        user_id = data.get('user_id')
+        email = data.get('email')
+        user = User.query.filter_by(id=user_id,email=email).first()
+
+        if user:
+            user.password = form.new_password.data
+            db.session.add(user)
+            flash('Reset password success.')
+        else:
+            flash('Invalid token.')
+        return redirect(url_for('auth.login'))
+    return render_template('auth/reset_pwd_edit.html', form=form)
