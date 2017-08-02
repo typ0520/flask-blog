@@ -12,6 +12,7 @@ from flask_login import UserMixin, AnonymousUserMixin
 from flask import current_app
 from . import login_manager
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+from datetime import datetime
 
 # 关注用户				0b00000001(0x01)		关注其他用户
 # 在他人的文章中发表评论	0b00000010(0x02)		在他人撰写的文章中发布评论
@@ -73,6 +74,17 @@ class User(UserMixin, db.Model):
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     confirmed = db.Column(db.Boolean, default=False)
 
+    #真实姓名
+    name = db.Column(db.String(64))
+    #所在地
+    location = db.Column(db.String(64))
+    #自我介绍
+    about_me = db.Column(db.Text())
+    #注册日期
+    member_since = db.Column(db.DateTime(), default=datetime.utcnow)
+    #最后访问日期
+    last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
+
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
         if self.role is None:
@@ -118,6 +130,10 @@ class User(UserMixin, db.Model):
 
     def is_administrator(self):
         return True
+
+    def ping(self):
+        self.last_seen = datetime.utcnow()
+        db.session.add(self)
 
 class AnonymousUser(AnonymousUserMixin):
     def can(self, permissions):
