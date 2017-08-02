@@ -4,7 +4,7 @@ __author__ = 'typ0520'
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, SelectField
-from wtforms.validators import Required, Length, Email, EqualTo, Regexp
+from wtforms.validators import Required, DataRequired, Length, Email, EqualTo, Regexp
 from wtforms import ValidationError
 from ..models import User, Role
 
@@ -15,8 +15,8 @@ class EditProfileForm(FlaskForm):
     submit = SubmitField('Submit')
 
 class EditProfileAdminForm(FlaskForm):
-    email = StringField('Email', validators=[Required(), Length(1, 64), Email()])
-    username = StringField('Username', validators=[Required(), Length(1, 64), Regexp('^[A-Za-z][A-Za-z0-9_.]*$', 0,
+    email = StringField('Email', validators=[DataRequired(), Length(1, 64), Email()])
+    username = StringField('Username', validators=[DataRequired(), Length(1, 64), Regexp('^[A-Za-z][A-Za-z0-9_.]*$', 0,
                                                                                    'Usernames must have only letters, '
                                                                                    'numbers, dots or underscores')])
     confirmed = BooleanField('Confirmed')
@@ -40,3 +40,7 @@ class EditProfileAdminForm(FlaskForm):
         if field.data != self.user.username and \
                 User.query.filter_by(username=field.data).first():
             raise ValidationError('Username already in use.')
+
+class PostForm(FlaskForm):
+    body = TextAreaField("What's on your mind?", validators=[DataRequired()])
+    submit = SubmitField('Submit')

@@ -7,9 +7,9 @@ from flask import render_template, session, redirect, url_for, abort, flash
 from flask_login import login_required, current_user
 from . import main
 from .. import db
-from ..models import User, Role, Permission
+from ..models import User, Role, Permission, Post
 from ..decorators import permission_required, admin_required
-from .forms import EditProfileForm, EditProfileAdminForm
+from .forms import EditProfileForm, EditProfileAdminForm, PostForm
 
 
 @main.route('/admin')
@@ -29,7 +29,15 @@ def for_moderator_only():
 @main.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
-    return render_template('index.html')
+    form = PostForm()
+    if current_user.can(Permission.WRITE_ARTICLES) and \
+            form.validate_on_submit():
+        post = Post(body=form.body.data,
+                    author=current_user._get_current_object())
+        db.session.add(post)
+        return redirect(url_for('.index'))
+    posts = Post.query.order_by(Post.timestamp.desc()).all()
+    return render_template('index.html', form=form, posts=posts)
 
 
 @main.route('/user/<username>')
