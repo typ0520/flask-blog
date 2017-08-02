@@ -6,6 +6,7 @@ __author__ = 'typ0520'
 # python manage.py db migrate -m "initial migration"
 # python manage.py db upgrade
 
+import hashlib
 from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin, AnonymousUserMixin
@@ -129,11 +130,22 @@ class User(UserMixin, db.Model):
         return self.role is not None and (self.role.permissions & permissions) == permissions
 
     def is_administrator(self):
-        return True
+        return self.can(Permission.ADMINISTER)
 
     def ping(self):
         self.last_seen = datetime.utcnow()
         db.session.add(self)
+
+    def gravatar(self, size=100, default='idention', rating='g'):
+        # if request.is_secure:
+        #     url = 'https://secure.gravatar.com/avatar'
+        # else:
+        #     url = 'http://www.gravatar.com/avatar'
+        url = 'http://www.gravatar.com/avatar'
+        hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()
+        img = '{url}/{hash}?s={size}&r={rating}'.format(url=url, hash=hash, size=size, default=default, rating=rating)
+        return img
+
 
 class AnonymousUser(AnonymousUserMixin):
     def can(self, permissions):
