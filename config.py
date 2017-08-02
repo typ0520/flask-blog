@@ -18,7 +18,7 @@ class Config:
     MAIL_PASSWORD = 'typ5669298'
     FLASKY_MAIL_SUBJECT_PREFIX = '[Flasky]'
     FLASKY_MAIL_SENDER = 'tinker_manager@163.com'
-    FLASKY_ADMIN = os.environ.get('FLASKY_ADMIN')
+    FLASKY_ADMIN = 'php12345@163.com'
 
 class DevelopmentConfig(Config):
     DEBUG = True
