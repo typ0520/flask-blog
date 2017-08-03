@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+from markdown import markdown
+
 __author__ = 'typ0520'
 
 # python manage.py db init
 # python manage.py db migrate -m "initial migration"
 # python manage.py db upgrade
 
+import bleach
 import hashlib
 from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -14,6 +17,7 @@ from flask import current_app
 from . import login_manager
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from datetime import datetime
+
 
 # 关注用户				0b00000001(0x01)		关注其他用户
 # 在他人的文章中发表评论	0b00000010(0x02)		在他人撰写的文章中发布评论
@@ -45,8 +49,8 @@ class Role(db.Model):
     def insert_roles():
         roles = {
             'User': (Permission.FOLLOW |
-                           Permission.COMMENT |
-                           Permission.WRITE_ARTICLES, True),
+                     Permission.COMMENT |
+                     Permission.WRITE_ARTICLES, True),
 
             'Moderator': (Permission.FOLLOW |
                           Permission.COMMENT |
@@ -75,18 +79,18 @@ class User(UserMixin, db.Model):
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     confirmed = db.Column(db.Boolean, default=False)
 
-    #真实姓名
+    # 真实姓名
     name = db.Column(db.String(64))
-    #所在地
+    # 所在地
     location = db.Column(db.String(64))
-    #自我介绍
+    # 自我介绍
     about_me = db.Column(db.Text())
-    #注册日期
+    # 注册日期
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
-    #最后访问日期
+    # 最后访问日期
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
 
-    posts = db.relationship('Post', backref='author' ,lazy='dynamic')
+    posts = db.relationship('Post', backref='author', lazy='dynamic')
 
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
@@ -95,7 +99,6 @@ class User(UserMixin, db.Model):
                 self.role = Role.query.filter_by(permissions=0xff).first()
             if self.role is None:
                 self.role = Role.query.filter_by(default=True).first()
-
 
     def __repr__(self):
         return '<User %r>' % self.username
@@ -170,6 +173,7 @@ class User(UserMixin, db.Model):
             except IntegrityError:
                 db.session.rollback()
 
+
 class AnonymousUser(AnonymousUserMixin):
     def can(self, permissions):
         return False
@@ -177,11 +181,14 @@ class AnonymousUser(AnonymousUserMixin):
     def is_administrator(self):
         return False
 
+
 login_manager.anonymous_user = AnonymousUser
+
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
 
 class Post(db.Model):
     __tablename__ = 'posts'
@@ -189,6 +196,7 @@ class Post(db.Model):
     body = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    body_html = db.Column(db.Text)
 
     @staticmethod
     def generate_fake(count):
@@ -199,10 +207,21 @@ class Post(db.Model):
         user_count = User.query.count()
         for i in range(count):
             u = User.query.offset(randint(0, user_count - 1)).first()
-            p = Post(body=forgery_py.lorem_ipsum.sentences(randint(1,3)),
+            p = Post(body=forgery_py.lorem_ipsum.sentences(randint(1, 3)),
                      timestamp=forgery_py.date.date(True),
                      author=u)
             db.session.add(p)
             db.session.commit()
 
+    @staticmethod
+    def on_changed_body(target, value, oldvalue, initiator):
+        allowed_tags = ['a', 'abbr', 'acronym', 'b', 'blockquote', 'code',
+                        'em', 'i', 'li', 'ol', 'pre', 'strong', 'ul',
+                        'h1', 'h2', 'h3', 'p']
+        target.body_html = bleach.linkify(
+            bleach.clean(
+                markdown(value, output_format='html'),
+                tags=allowed_tags, strip=True))
 
+
+db.event.listen(Post.body, 'set', Post.on_changed_body)
