@@ -69,6 +69,15 @@ class Role(db.Model):
             db.session.add(role)
 
 
+class Follow(db.Model):
+    __tablename__ = 'follows'
+    follower_id = db.Column(db.Integer, db.ForeignKey('users.id'),
+                            primary_key=True)
+    followed_id = db.Column(db.Integer, db.ForeignKey('users.id'),
+                            primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
 
@@ -91,6 +100,19 @@ class User(UserMixin, db.Model):
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
 
     posts = db.relationship('Post', backref='author', lazy='dynamic')
+
+    #我关注的人
+    followed = db.relationship('Follow',
+                               foreign_keys=[Follow.follower_id],
+                               backref=db.backref('follower', lazy='joined'),
+                               lazy='dynamic',
+                               cascade='all, delete-orphan')
+    #关注我的人
+    followers = db.relationship('Follow',
+                               foreign_keys=[Follow.followed_id],
+                               backref=db.backref('followed', lazy='joined'),
+                               lazy='dynamic',
+                               cascade='all, delete-orphan')
 
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
@@ -150,6 +172,20 @@ class User(UserMixin, db.Model):
         hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()
         img = '{url}/{hash}?s={size}&r={rating}'.format(url=url, hash=hash, size=size, default=default, rating=rating)
         return img
+
+    def follow(self, user):
+        pass
+
+    def unfollow(self, user):
+        pass
+
+    #是否关注了某个人
+    def is_following(self, user):
+        self.followed.filter_by(follower)
+
+    #是否被某个人关注
+    def is_followed_by(self,user):
+        pass
 
     @staticmethod
     def generate_fake(count=100):
