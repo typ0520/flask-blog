@@ -174,18 +174,23 @@ class User(UserMixin, db.Model):
         return img
 
     def follow(self, user):
-        pass
+        if not self.is_following(user):
+            f = Follow(follower=self, followed=user)
+            db.session.add(f)
+
 
     def unfollow(self, user):
-        pass
+        f = self.followed.filter_by(followed_id=user.id).first()
+        if f:
+            db.session.delete(f)
 
     #是否关注了某个人
     def is_following(self, user):
-        self.followed.filter_by(follower)
+        return self.followed.filter_by(followed_id=user.id).first() is not None
 
     #是否被某个人关注
     def is_followed_by(self,user):
-        pass
+        return self.followers.filter_by(follower_id=user.id).first() is not None
 
     @staticmethod
     def generate_fake(count=100):
