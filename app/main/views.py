@@ -94,3 +94,25 @@ def edit_profile_admin(id):
     form.location.data = user.location
     form.about_me.data = user.about_me
     return render_template('edit_profile.html', form=form, user=user)
+
+@main.route('/post/<int:id>')
+def post(id):
+    post = Post.query.get_or_404(id)
+    return render_template('post.html',post=post)
+
+@main.route('/edit-post/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_post(id):
+    post = Post.query.get_or_404(id)
+
+    if current_user != post.author and \
+        not current_user.can(Permission.WRITE_ARTICLES):
+        abort(403)
+    form = PostForm()
+    if form.validate_on_submit():
+        post.body = form.body.data
+        db.session.add(post)
+        flash('The post has been updated.')
+        return redirect(url_for('post', id=post.id))
+    form.body.data = post.body
+    return render_template('edit_post.html', post=post, form=form)
