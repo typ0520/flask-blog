@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% import "_macros.html" as macros %}
+
+{% block title %}Flasky{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{{ pagedown.include_pagedown() }} {% endblock %}
+
+{% block page_content %}
+
+    <ul class="posts">
+    {% for follow in follows %}
+    <li class="post">
+        <div class="post-thumbnail">
+            <a href="{{ url_for('.user', username=follow.user.username) }}">
+                <img class="img-rounded profile-thumbnail" src="{{ follow.user.gravatar(size=40) }}">
+            </a>
+        </div>
+        <div class="post-content">
+            <div class="post-date">{{ moment(follow.timestamp).fromNow() }}</div>
+            <div class="post-author"><a href="{{ url_for('.user', username=follow.user.username) }}">{{ follow.user.username }}</a></div>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+
+      <div class="pagination">
+         {{ macros.pagination_widget(pagination, '.followers',username=user.username) }}
+     </div>
+{% endblock %}
