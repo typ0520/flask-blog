@@ -138,7 +138,7 @@ def post(id):
 
     pagination = post.comments.order_by(Comment.timestamp.asc()).paginate(page, per_page=10, error_out=False)
     comments = pagination.items
-    return render_template('post.html',posts=[post], form=form, page=page, comments=comments, pagination=pagination)
+    return render_template('post.html', posts=[post], form=form, page=page, comments=comments, pagination=pagination)
 
 
 @main.route('/edit-post/<int:id>', methods=['GET', 'POST'])
@@ -212,3 +212,34 @@ def followed_by(username):
     pagination = u.followed.order_by(Follow.timestamp.desc()).paginate(page, per_page=10, error_out=False)
     follows = [{'user': item.followed, 'timestamp': item.timestamp} for item in pagination.items]
     return render_template('followed_by.html', pagination=pagination, follows=follows, user=u)
+
+
+@main.route('/moderate')
+@login_required
+@permission_required(Permission.MODERATE_COMMENTS)
+def moderate():
+    page = request.args.get('page', 1, type=int)
+    pagination = Comment.query.order_by(Comment.timestamp.desc()).paginate(page=page, per_page=10, error_out=False)
+    comments = pagination.items
+    return render_template('moderate.html', comments=comments, pagination=pagination, page=page)
+
+
+@main.route('/moderate/enable/<int:id>')
+@login_required
+@permission_required(Permission.MODERATE_COMMENTS)
+def moderate_enable(id):
+    comment = Comment.query.get_or_404(id)
+    comment.disabled = False
+    db.session.add(comment)
+    return redirect(url_for('.moderate',
+                            page=request.args.get('page', 1, type=int)))
+
+
+@main.route('/moderate/disable/<int:id>')
+@login_required
+@permission_required(Permission.MODERATE_COMMENTS)
+def moderate_disable(id):
+    comment = Comment.query.get_or_404(id)
+    comment.disabled = True
+    db.session.add(comment)
+    return redirect(url_for('.moderate',page=request.args.get('page', 1, type=int)))
