@@ -13,7 +13,7 @@ import hashlib
 from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin, AnonymousUserMixin
-from flask import current_app
+from flask import current_app, url_for
 from . import login_manager
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from datetime import datetime
@@ -102,18 +102,18 @@ class User(UserMixin, db.Model):
     posts = db.relationship('Post', backref='author', lazy='dynamic')
     comments = db.relationship('Comment', backref='author', lazy='dynamic')
 
-    #我关注的人
+    # 我关注的人
     followed = db.relationship('Follow',
                                foreign_keys=[Follow.follower_id],
                                backref=db.backref('follower', lazy='joined'),
                                lazy='dynamic',
                                cascade='all, delete-orphan')
-    #关注我的人
+    # 关注我的人
     followers = db.relationship('Follow',
-                               foreign_keys=[Follow.followed_id],
-                               backref=db.backref('followed', lazy='joined'),
-                               lazy='dynamic',
-                               cascade='all, delete-orphan')
+                                foreign_keys=[Follow.followed_id],
+                                backref=db.backref('followed', lazy='joined'),
+                                lazy='dynamic',
+                                cascade='all, delete-orphan')
 
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
@@ -179,24 +179,37 @@ class User(UserMixin, db.Model):
             f = Follow(follower=self, followed=user)
             db.session.add(f)
 
-
     def unfollow(self, user):
         f = self.followed.filter_by(followed_id=user.id).first()
         if f:
             db.session.delete(f)
 
-    #是否关注了某个人
+    # 是否关注了某个人
     def is_following(self, user):
         return self.followed.filter_by(followed_id=user.id).first() is not None
 
-    #是否被某个人关注
-    def is_followed_by(self,user):
+    # 是否被某个人关注
+    def is_followed_by(self, user):
         return self.followers.filter_by(follower_id=user.id).first() is not None
 
     @property
     def followed_posts(self):
-        return Post.query.join(Follow, Follow.followed_id == Post.author_id)\
+        return Post.query.join(Follow, Follow.followed_id == Post.author_id) \
             .filter(Follow.follower_id == self.id)
+
+    def generate_auth_token(self, expiration):
+        s = Serializer(current_app.config['SECRET_KEY'],
+                       expires_in=expiration)
+        return s.dumps({'id': self.id})
+
+    @staticmethod
+    def verify_auth_token(token):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token)
+        except:
+            return None
+        return User.query.get(data['id'])
 
     @staticmethod
     def generate_fake(count=100):
@@ -278,6 +291,20 @@ class Post(db.Model):
             bleach.clean(
                 markdown(value, output_format='html'),
                 tags=allowed_tags, strip=True))
+
+    def to_json(self):
+        json_post = {
+            'url': url_for('api.get_post', id=self.id, _external=True),
+            'body': self.body,
+            'body_html': self.body_html,
+            'timestamp': self.timestamp,
+            # 'author': url_for('api.get_user', id=self.author_id,
+            #                   _external=True),
+            # 'comments': url_for('api.get_post_comments', id=self.id,
+            #                     _external=True),
+            'comment_count': self.comments.count()
+        }
+        return json_post
 
 
 db.event.listen(Post.body, 'set', Post.on_changed_body)

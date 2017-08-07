@@ -27,7 +27,6 @@ def for_moderator_only():
 
 
 @main.route('/', methods=['GET', 'POST'])
-@login_required
 def index():
     form = PostForm()
     if current_user.can(Permission.WRITE_ARTICLES) and \
